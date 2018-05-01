@@ -54,6 +54,13 @@
   when: network_bridge_interfaces is defined
   register: bridge_port_result
 
+# Remove configuration files for ignored interfaces
+- name: Remove the network configuration files for ignored devices
+  file: path={{ net_path }}/ifcfg-{{ item.device }} state=absent
+  with_items: "{{ network_ignore_interfaces }}"
+  when: network_ignore_interfaces is defined
+  register: ignore_result
+
 # Restart Network Interfaces (deconfigurate & reconfigurate interfaces)
 - include: restartscript.yml
   when: network_allow_service_restart and ansible_os_family == 'Debian'
@@ -93,7 +100,8 @@
           or bond_result | changed
           or vlan_result | changed
           or bridge_result | changed
-          or bridge_port_result | changed)
+          or bridge_port_result | changed
+          or ignore_result |changed)
 
 - name: Restart the "NetworkManager" service on Red Hat systems
   service: name=network state=restarted
@@ -106,4 +114,5 @@
      bond_result | changed or
      vlan_result | changed or
      bridge_result | changed or
-     bridge_port_result | changed)
+     bridge_port_result | changed or
+     ignore_result | changed)
